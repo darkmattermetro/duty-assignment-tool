@@ -5,53 +5,44 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Train Duty Automator - Sequential Fill</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: 'Inter', 'Segoe UI', Tahoma, sans-serif;
             min-height: 100vh;
-            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            background: #0a0a1a;
             color: #fff;
             overflow-x: hidden;
         }
 
-        body::before {
-            content: '';
+        canvas#bgCanvas {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .bg-gradient {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
+            z-index: 0;
             background:
-                radial-gradient(circle at 20% 25%, rgba(72, 131, 255, 0.25) 0%, transparent 50%),
-                radial-gradient(circle at 80% 75%, rgba(153, 92, 255, 0.25) 0%, transparent 50%),
-                radial-gradient(circle at 50% 50%, rgba(0, 210, 255, 0.15) 0%, transparent 60%);
-            animation: gradientShift 10s ease-in-out infinite alternate;
-            z-index: 0;
+                linear-gradient(135deg,
+                    rgba(139, 0, 255, 0.15) 0%,
+                    rgba(0, 102, 255, 0.12) 25%,
+                    rgba(0, 255, 200, 0.10) 50%,
+                    rgba(255, 0, 128, 0.12) 75%,
+                    rgba(255, 153, 0, 0.10) 100%);
+            animation: bgShift 8s ease-in-out infinite alternate;
             pointer-events: none;
         }
-
-        @keyframes gradientShift {
-            0% { opacity: 0.7; transform: scale(1); }
-            50% { opacity: 1; transform: scale(1.05); }
-            100% { opacity: 0.7; transform: scale(1); }
-        }
-
-        .floating-orb {
-            position: fixed;
-            border-radius: 50%;
-            filter: blur(40px);
-            opacity: 0.3;
-            animation: float 6s ease-in-out infinite;
-            pointer-events: none;
-            z-index: 0;
-        }
-        .orb1 { width: 200px; height: 200px; background: #4a8cff; top: 10%; left: 15%; animation-delay: 0s; }
-        .orb2 { width: 150px; height: 150px; background: #9b5cff; bottom: 20%; right: 10%; animation-delay: 2s; }
-        .orb3 { width: 100px; height: 100px; background: #00d4ff; top: 60%; left: 70%; animation-delay: 4s; }
-
-        @keyframes float {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-20px); }
+        @keyframes bgShift {
+            0% { filter: hue-rotate(0deg); opacity: 0.8; }
+            50% { opacity: 1; }
+            100% { filter: hue-rotate(30deg); opacity: 0.8; }
         }
 
         .main-container {
@@ -73,69 +64,142 @@
             display: flex;
             align-items: center;
             gap: 8px;
+            background: rgba(255,255,255,0.05);
+            padding: 8px 18px;
+            border-radius: 50px;
+            border: 1px solid rgba(255,255,255,0.1);
         }
         .live-datetime .dot {
             width: 8px; height: 8px;
-            background: #4ade80;
+            background: #00ff88;
             border-radius: 50%;
-            animation: pulse 2s ease-in-out infinite;
+            animation: pulse 1.5s ease-in-out infinite;
+            box-shadow: 0 0 8px #00ff88;
         }
         @keyframes pulse {
-            0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.6); }
-            50% { opacity: 0.7; box-shadow: 0 0 0 6px rgba(74, 222, 128, 0); }
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.8); }
         }
 
         .glass-card {
-            background: rgba(255, 255, 255, 0.08);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            border-radius: 24px;
-            padding: 40px;
-            max-width: 700px;
+            position: relative;
+            background: rgba(255, 255, 255, 0.06);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border-radius: 28px;
+            padding: 44px;
+            max-width: 720px;
             width: 100%;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            transition: transform 0.3s, box-shadow 0.3s;
+            overflow: hidden;
+            transition: transform 0.3s;
         }
-        .glass-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+        .glass-card:hover { transform: translateY(-2px); }
+
+        .glass-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            border-radius: 28px;
+            padding: 1.5px;
+            background: linear-gradient(135deg, #ff006e, #8338ec, #3a86ff, #06d6a0, #ffbe0b, #ff006e);
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            background-size: 300% 300%;
+            animation: borderFlow 4s ease-in-out infinite;
+            pointer-events: none;
+        }
+        @keyframes borderFlow {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .shimmer {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.04) 45%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 55%, transparent 60%);
+            background-size: 200% 100%;
+            animation: shimmer 6s ease-in-out infinite;
+            pointer-events: none;
+            border-radius: 28px;
+        }
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
         }
 
         h2 {
             text-align: center;
-            font-size: 28px;
-            font-weight: 700;
-            background: linear-gradient(135deg, #4a8cff 0%, #a78bfa 50%, #00d4ff 100%);
+            font-size: 30px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #ff006e, #8338ec, #3a86ff, #06d6a0);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
             margin-bottom: 8px;
+            background-size: 200% auto;
+            animation: textGrad 3s ease-in-out infinite alternate;
+        }
+        @keyframes textGrad {
+            0% { background-position: 0% center; }
+            100% { background-position: 100% center; }
         }
 
         .subtitle {
             font-size: 13px;
-            color: rgba(255, 255, 255, 0.5);
+            color: rgba(255, 255, 255, 0.45);
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 32px;
         }
+
+        .step-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            font-size: 13px;
+            font-weight: 700;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        .step1 .step-number { background: linear-gradient(135deg, #ff006e, #ff4d94); }
+        .step2 .step-number { background: linear-gradient(135deg, #8338ec, #a855f7); }
+        .step3 .step-number { background: linear-gradient(135deg, #3a86ff, #60a5fa); }
 
         .file-group {
             margin-bottom: 20px;
             padding: 20px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 16px;
-            transition: background 0.3s, border-color 0.3s;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 18px;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
         }
+        .file-group::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0;
+            width: 4px; height: 100%;
+            border-radius: 0 4px 4px 0;
+            transition: opacity 0.3s;
+        }
+        .step1 .file-group::before { background: linear-gradient(180deg, #ff006e, #ff4d94); }
+        .step2 .file-group::before { background: linear-gradient(180deg, #8338ec, #a855f7); }
+        .step3 .file-group::before { background: linear-gradient(180deg, #3a86ff, #60a5fa); }
+
         .file-group:hover {
-            background: rgba(255, 255, 255, 0.08);
-            border-color: rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.07);
+            border-color: rgba(255, 255, 255, 0.15);
         }
 
         label {
             display: block;
-            font-weight: 500;
+            font-weight: 600;
             margin-bottom: 12px;
             font-size: 14px;
             color: rgba(255, 255, 255, 0.85);
@@ -143,98 +207,119 @@
 
         input[type="file"] {
             width: 100%;
-            padding: 12px 16px;
-            background: rgba(255, 255, 255, 0.06);
-            border: 1px dashed rgba(255, 255, 255, 0.25);
-            border-radius: 12px;
-            color: rgba(255, 255, 255, 0.7);
+            padding: 14px 18px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 2px dashed rgba(255, 255, 255, 0.15);
+            border-radius: 14px;
+            color: rgba(255, 255, 255, 0.6);
             font-size: 14px;
             cursor: pointer;
-            transition: border-color 0.3s, background 0.3s;
+            transition: all 0.3s;
         }
         input[type="file"]:hover {
-            border-color: rgba(255, 255, 255, 0.4);
-            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.07);
+        }
+        input[type="file"]:focus {
+            outline: none;
+            border-color: #3a86ff;
+            box-shadow: 0 0 0 3px rgba(58, 134, 255, 0.2);
         }
         input[type="file"]::file-selector-button {
-            padding: 8px 18px;
+            padding: 10px 20px;
             border: none;
-            border-radius: 8px;
-            background: linear-gradient(135deg, #4a8cff, #a78bfa);
+            border-radius: 10px;
+            background: linear-gradient(135deg, #3a86ff, #8338ec);
             color: #fff;
-            font-weight: 500;
+            font-weight: 600;
             font-size: 13px;
             cursor: pointer;
-            margin-right: 12px;
-            transition: opacity 0.2s;
+            margin-right: 14px;
+            transition: all 0.2s;
         }
         input[type="file"]::file-selector-button:hover {
-            opacity: 0.85;
+            opacity: 0.9;
+            transform: scale(1.02);
         }
 
         .btn-primary {
             width: 100%;
-            padding: 16px;
-            background: linear-gradient(135deg, #4a8cff 0%, #6366f1 100%);
+            padding: 18px;
+            background: linear-gradient(135deg, #ff006e, #8338ec, #3a86ff);
+            background-size: 200% 100%;
             color: white;
             border: none;
-            border-radius: 14px;
-            font-size: 16px;
-            font-weight: 600;
+            border-radius: 16px;
+            font-size: 17px;
+            font-weight: 700;
             cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
-            box-shadow: 0 4px 20px rgba(74, 140, 255, 0.3);
+            transition: all 0.3s;
+            box-shadow: 0 6px 30px rgba(131, 56, 236, 0.35);
             letter-spacing: 0.5px;
+            animation: btnGrad 4s ease-in-out infinite alternate;
+        }
+        @keyframes btnGrad {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 100% 50%; }
         }
         .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 25px rgba(74, 140, 255, 0.45);
+            transform: translateY(-3px);
+            box-shadow: 0 10px 40px rgba(131, 56, 236, 0.5);
         }
-        .btn-primary:active {
-            transform: translateY(0);
-        }
+        .btn-primary:active { transform: translateY(0); }
 
         .sample-downloads {
             display: flex;
-            gap: 12px;
-            margin-top: 16px;
+            gap: 14px;
+            margin-top: 18px;
         }
         .btn-sample {
             flex: 1;
-            padding: 12px;
-            background: rgba(255, 255, 255, 0.06);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            border-radius: 12px;
-            color: rgba(255, 255, 255, 0.8);
+            padding: 14px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 14px;
+            color: rgba(255, 255, 255, 0.75);
             font-size: 13px;
             font-weight: 500;
             cursor: pointer;
-            transition: background 0.3s, border-color 0.3s, transform 0.2s;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
+        .btn-sample:first-child { border-color: rgba(58, 134, 255, 0.3); }
+        .btn-sample:last-child { border-color: rgba(6, 214, 160, 0.3); }
         .btn-sample:hover {
-            background: rgba(255, 255, 255, 0.12);
-            border-color: rgba(255, 255, 255, 0.3);
-            transform: translateY(-1px);
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateY(-2px);
         }
+        .btn-sample:first-child:hover { border-color: rgba(58, 134, 255, 0.5); box-shadow: 0 4px 20px rgba(58, 134, 255, 0.2); }
+        .btn-sample:last-child:hover { border-color: rgba(6, 214, 160, 0.5); box-shadow: 0 4px 20px rgba(6, 214, 160, 0.2); }
 
         #status {
-            margin-top: 20px;
+            margin-top: 22px;
             white-space: pre-wrap;
             font-family: 'Inter', monospace;
             font-size: 13px;
-            color: rgba(255, 255, 255, 0.85);
-            background: rgba(255, 191, 0, 0.12);
-            border: 1px solid rgba(255, 191, 0, 0.25);
-            padding: 14px;
-            border-radius: 12px;
+            color: #ffbe0b;
+            background: rgba(255, 191, 11, 0.08);
+            border: 1px solid rgba(255, 191, 11, 0.2);
+            padding: 16px;
+            border-radius: 14px;
             display: none;
         }
 
         footer {
-            margin-top: 40px;
+            margin-top: 44px;
             font-size: 13px;
-            color: rgba(255, 255, 255, 0.35);
+            color: rgba(255, 255, 255, 0.25);
             text-align: center;
+            padding: 16px 24px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 50px;
+            border: 1px solid rgba(255,255,255,0.05);
         }
 
         .password-overlay {
@@ -244,68 +329,90 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            background: #0a0a1a;
+            transition: opacity 0.5s, visibility 0.5s;
         }
-        .password-overlay::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background:
-                radial-gradient(circle at 30% 30%, rgba(72, 131, 255, 0.2) 0%, transparent 50%),
-                radial-gradient(circle at 70% 70%, rgba(153, 92, 255, 0.2) 0%, transparent 50%);
-            pointer-events: none;
+        .password-overlay.hidden {
+            opacity: 0;
+            visibility: hidden;
         }
+
         .password-card {
             position: relative;
             z-index: 1;
-            background: rgba(255, 255, 255, 0.08);
-            backdrop-filter: blur(24px);
-            -webkit-backdrop-filter: blur(24px);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            border-radius: 24px;
-            padding: 40px;
-            max-width: 400px;
+            background: rgba(255, 255, 255, 0.06);
+            backdrop-filter: blur(28px);
+            -webkit-backdrop-filter: blur(28px);
+            border-radius: 28px;
+            padding: 44px 36px;
+            max-width: 420px;
             width: 90%;
-            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4);
+            overflow: hidden;
             text-align: center;
+            animation: floatIn 0.6s ease-out;
         }
-        .password-card .lock-icon {
-            font-size: 48px;
-            margin-bottom: 16px;
+        @keyframes floatIn {
+            0% { opacity: 0; transform: translateY(30px) scale(0.95); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
         }
+        .password-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            border-radius: 28px;
+            padding: 1.5px;
+            background: linear-gradient(135deg, #ff006e, #8338ec, #3a86ff, #06d6a0, #ffbe0b, #ff006e);
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            background-size: 300% 300%;
+            animation: borderFlow 4s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        .lock-icon {
+            margin-bottom: 20px;
+            animation: lockBounce 2s ease-in-out infinite;
+        }
+        @keyframes lockBounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-6px); }
+        }
+
         .password-card h3 {
-            font-size: 22px;
-            font-weight: 600;
+            font-size: 24px;
+            font-weight: 700;
             margin-bottom: 8px;
-            background: linear-gradient(135deg, #4a8cff 0%, #a78bfa 100%);
+            background: linear-gradient(135deg, #ff006e, #8338ec, #3a86ff);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
-        .password-card p {
-            font-size: 13px;
-            color: rgba(255, 255, 255, 0.5);
-            margin-bottom: 24px;
+        .password-card > p {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.45);
+            margin-bottom: 28px;
         }
         .password-input-wrap {
             position: relative;
-            margin-bottom: 20px;
+            margin-bottom: 16px;
         }
         .password-input-wrap input {
             width: 100%;
-            padding: 14px 50px 14px 18px;
+            padding: 16px 52px 16px 20px;
             background: rgba(255, 255, 255, 0.06);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 14px;
             color: #fff;
             font-size: 15px;
             font-family: 'Inter', sans-serif;
             outline: none;
-            transition: border-color 0.3s, box-shadow 0.3s;
+            transition: all 0.3s;
         }
         .password-input-wrap input:focus {
-            border-color: #4a8cff;
-            box-shadow: 0 0 0 3px rgba(74, 140, 255, 0.2);
+            border-color: #8338ec;
+            box-shadow: 0 0 0 4px rgba(131, 56, 236, 0.15);
         }
         .toggle-vis {
             position: absolute;
@@ -314,60 +421,62 @@
             transform: translateY(-50%);
             background: none;
             border: none;
-            color: rgba(255, 255, 255, 0.4);
+            color: rgba(255, 255, 255, 0.35);
             cursor: pointer;
-            font-size: 18px;
-            padding: 4px;
+            font-size: 20px;
+            padding: 6px;
             width: auto;
             transition: color 0.2s;
         }
         .toggle-vis:hover { color: rgba(255, 255, 255, 0.7); }
         .password-error {
-            color: #ff6b6b;
+            color: #ff4d6a;
             font-size: 13px;
-            margin-bottom: 12px;
+            margin-bottom: 16px;
             min-height: 20px;
         }
         .btn-unlock {
             width: 100%;
-            padding: 14px;
-            background: linear-gradient(135deg, #4a8cff 0%, #6366f1 100%);
+            padding: 16px;
+            background: linear-gradient(135deg, #ff006e, #8338ec, #3a86ff);
+            background-size: 200% 100%;
             color: white;
             border: none;
-            border-radius: 12px;
-            font-size: 15px;
-            font-weight: 600;
+            border-radius: 14px;
+            font-size: 16px;
+            font-weight: 700;
             cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-            box-shadow: 0 4px 20px rgba(74, 140, 255, 0.3);
+            transition: all 0.3s;
+            box-shadow: 0 4px 25px rgba(131, 56, 236, 0.35);
+            animation: btnGrad 4s ease-in-out infinite alternate;
         }
         .btn-unlock:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 25px rgba(74, 140, 255, 0.45);
+            box-shadow: 0 8px 30px rgba(131, 56, 236, 0.5);
         }
-        .hidden { display: none !important; }
 
         @media (max-width: 600px) {
-            .glass-card { padding: 24px; }
-            h2 { font-size: 22px; }
+            .glass-card { padding: 28px 20px; }
+            h2 { font-size: 24px; }
             .sample-downloads { flex-direction: column; }
         }
     </style>
 </head>
 <body>
 
-<div class="floating-orb orb1"></div>
-<div class="floating-orb orb2"></div>
-<div class="floating-orb orb3"></div>
+<canvas id="bgCanvas"></canvas>
+<div class="bg-gradient"></div>
 
 <div class="password-overlay" id="passwordOverlay">
+    <canvas id="bgCanvasOverlay" style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;"></canvas>
     <div class="password-card">
         <div class="lock-icon">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="url(#lockGrad)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="url(#lockGrad)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
                 <defs>
                     <linearGradient id="lockGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stop-color="#4a8cff"/>
-                        <stop offset="100%" stop-color="#a78bfa"/>
+                        <stop offset="0%" stop-color="#ff006e"/>
+                        <stop offset="50%" stop-color="#8338ec"/>
+                        <stop offset="100%" stop-color="#3a86ff"/>
                     </linearGradient>
                 </defs>
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
@@ -379,7 +488,7 @@
         <p>Enter the password to continue</p>
         <div class="password-input-wrap">
             <input type="password" id="passwordInput" placeholder="Enter password..." onkeydown="if(event.key==='Enter')checkPassword()">
-            <button class="toggle-vis" onclick="togglePasswordVisibility()" aria-label="Toggle password visibility">
+            <button class="toggle-vis" onclick="togglePasswordVisibility()" aria-label="Toggle password visibility" type="button">
                 <svg id="eyeIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                     <circle cx="12" cy="12" r="3"/>
@@ -391,7 +500,7 @@
     </div>
 </div>
 
-<div class="main-container" id="mainContent" style="filter: blur(8px); pointer-events: none; opacity: 0.3;">
+<div class="main-container" id="mainContent" style="filter: blur(10px); pointer-events: none; opacity: 0.2;">
 
     <div class="live-datetime">
         <span class="dot"></span>
@@ -399,33 +508,40 @@
     </div>
 
     <div class="glass-card">
+        <div class="shimmer"></div>
         <h2>Train Duty Automation Tool</h2>
         <p class="subtitle">Sequential Blank Fill Logic — Upload, Process & Download</p>
         
-        <div class="file-group">
-            <label>1. Train Loop Verification File (CSV):</label>
-            <input type="file" id="verifFile" accept=".csv">
+        <div class="step1">
+            <div class="file-group">
+                <label><span class="step-number">1</span>Train Loop Verification File (CSV)</label>
+                <input type="file" id="verifFile" accept=".csv">
+            </div>
         </div>
 
-        <div class="file-group">
-            <label>2. Down File (CSV):</label>
-            <input type="file" id="downFile" accept=".csv">
+        <div class="step2">
+            <div class="file-group">
+                <label><span class="step-number">2</span>Down File (CSV)</label>
+                <input type="file" id="downFile" accept=".csv">
+            </div>
         </div>
 
-        <div class="file-group">
-            <label>3. Up File (CSV):</label>
-            <input type="file" id="upFile" accept=".csv">
+        <div class="step3">
+            <div class="file-group">
+                <label><span class="step-number">3</span>Up File (CSV)</label>
+                <input type="file" id="upFile" accept=".csv">
+            </div>
         </div>
 
         <button class="btn-primary" onclick="runAutomation()">Process & Download Updated Files</button>
 
         <div class="sample-downloads">
-            <button class="btn-sample" onclick="downloadSample('down')">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: -2px; margin-right: 4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <button class="btn-sample" onclick="downloadSample('down')" type="button">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                 Sample Down CSV
             </button>
-            <button class="btn-sample" onclick="downloadSample('up')">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: -2px; margin-right: 4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <button class="btn-sample" onclick="downloadSample('up')" type="button">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                 Sample Up CSV
             </button>
         </div>
@@ -441,6 +557,86 @@
 
 <script>
     const ACCESS_PASSWORD = 'admin123';
+
+    function initParticles(canvasId) {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return null;
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        let animFrame;
+        const colors = ['#ff006e', '#8338ec', '#3a86ff', '#06d6a0', '#ffbe0b', '#fb5607'];
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resize();
+        window.addEventListener('resize', resize);
+
+        class Particle {
+            constructor() { this.reset(); }
+            reset() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 3 + 1;
+                this.speedX = (Math.random() - 0.5) * 1.2;
+                this.speedY = (Math.random() - 0.5) * 1.2;
+                this.color = colors[Math.floor(Math.random() * colors.length)];
+                this.alpha = Math.random() * 0.5 + 0.2;
+            }
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                if (this.x < 0 || this.x > canvas.width) this.speedX *= -1;
+                if (this.y < 0 || this.y > canvas.height) this.speedY *= -1;
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.globalAlpha = this.alpha;
+                ctx.fill();
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        for (let i = 0; i < 80; i++) particles.push(new Particle());
+
+        function connectParticles() {
+            for (let i = 0; i < particles.length; i++) {
+                for (let j = i + 1; j < particles.length; j++) {
+                    const dx = particles[i].x - particles[j].x;
+                    const dy = particles[i].y - particles[j].y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < 150) {
+                        ctx.beginPath();
+                        ctx.strokeStyle = colors[(i + j) % colors.length];
+                        ctx.globalAlpha = (1 - dist / 150) * 0.15;
+                        ctx.lineWidth = 0.8;
+                        ctx.moveTo(particles[i].x, particles[i].y);
+                        ctx.lineTo(particles[j].x, particles[j].y);
+                        ctx.stroke();
+                        ctx.globalAlpha = 1;
+                    }
+                }
+            }
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => { p.update(); p.draw(); });
+            connectParticles();
+            animFrame = requestAnimationFrame(animate);
+        }
+        animate();
+
+        return {
+            stop() { cancelAnimationFrame(animFrame); }
+        };
+    }
+
+    const bgAnim = initParticles('bgCanvas');
+    initParticles('bgCanvasOverlay');
 
     function checkPassword() {
         const input = document.getElementById('passwordInput').value;
